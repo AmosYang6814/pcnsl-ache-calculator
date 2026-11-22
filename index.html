@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACHE Survival Calculator — Primary Central Nervous System Lymphoma (PCNSL)</title>
+  <meta name="description" content="Closed-form nonlinear ACHE overall survival calculator (12-, 24-, and 36-month OS) for newly diagnosed primary central nervous system lymphoma (PCNSL)." />
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --navy: #0f2942;
+      --navy-soft: #1d3e5e;
+      --teal: #0d7377;
+      --teal-light: #e6f4f4;
+      --coral: #c84b31;
+      --coral-light: #fdf0ed;
+      --amber: #b7791f;
+      --amber-light: #fef9e7;
+      --text: #1e293b;
+      --muted: #5b6b7c;
+      --border: #dce3ec;
+      --radius: 12px;
+      --shadow: 0 2px 10px rgba(15, 41, 66, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, #163b5c 100%);
+      color: #ffffff;
+      padding: 28px 20px 26px;
+      border-bottom: 3px solid var(--teal);
+    }
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      color: #e2f1f2;
+    }
+    .badge.warn {
+      background: rgba(245, 158, 11, 0.22);
+      color: #fde68a;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(21px, 3vw, 28px);
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+    .subtitle {
+      margin: 0;
+      font-size: 14.5px;
+      color: #cbd5e1;
+      max-width: 820px;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 22px auto 36px;
+      padding: 0 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(310px, 410px) 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 880px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 22px;
+    }
+    .card h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .card-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin: -8px 0 16px;
+    }
+
+    /* Presets */
+    .preset-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .preset-btn {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--navy);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .preset-btn:hover {
+      border-color: var(--teal);
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    /* Inputs */
+    .field {
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eef2f6;
+    }
+    .field:last-of-type {
+      margin-bottom: 10px;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    .field-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    .field label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .field-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type="number"] {
+      width: 112px;
+      padding: 7px 10px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--navy);
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="number"]:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.12);
+    }
+    .unit {
+      font-size: 12.5px;
+      color: var(--muted);
+      min-width: 38px;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--teal);
+      cursor: pointer;
+    }
+    .imputed-pill {
+      display: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--amber);
+      background: var(--amber-light);
+      border: 1px solid #f6e0b5;
+      padding: 1px 7px;
+      border-radius: 999px;
+      margin-left: 6px;
+    }
+    .imputed-pill.show { display: inline-block; }
+
+    /* ECOG segmented control */
+    .ecog-group {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .ecog-btn {
+      padding: 8px 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--navy);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ecog-btn:hover {
+      border-color: var(--teal);
+      background: var(--teal-light);
+    }
+    .ecog-btn.active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(13, 115, 119, 0.28);
+    }
+    .ecog-desc {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+
+    /* Results KPI cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 560px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 14px 12px;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
+    }
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--navy);
+      margin: 4px 0 6px;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-bar-bg {
+      height: 7px;
+      background: #e6ecf2;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .kpi-bar {
+      height: 100%;
+      background: var(--teal);
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+    .kpi-base {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Summary metrics strip */
+    .meta-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+    }
+    @media (max-width: 560px) {
+      .meta-strip { grid-template-columns: 1fr; }
+    }
+    .meta-item .mlabel {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+    .meta-item .mval {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Chart */
+    .chart-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px 8px;
+      background: #ffffff;
+      margin-bottom: 16px;
+    }
+    .chart-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .legend {
+      display: flex;
+      gap: 14px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .legend-dot {
+      display: inline-block;
+      width: 14px;
+      height: 3px;
+      vertical-align: middle;
+      margin-right: 5px;
+      border-radius: 2px;
+    }
+
+    /* Breakdown table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    th, td {
+      padding: 8px 8px;
+      text-align: right;
+      border-bottom: 1px solid #edf2f7;
+    }
+    th {
+      font-weight: 700;
+      color: var(--navy);
+      background: #f8fafc;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    th:first-child, td:first-child { text-align: left; }
+    .pos { color: var(--coral); font-weight: 600; }
+    .neg { color: var(--teal); font-weight: 600; }
+
+    /* Collapsible equations */
+    details {
+      margin-top: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 20px;
+    }
+    summary {
+      cursor: pointer;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--navy);
+      user-select: none;
+    }
+    .formula-box {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.2px;
+      line-height: 1.65;
+      overflow-x: auto;
+      color: #1e293b;
+    }
+
+    .disclaimer {
+      margin-top: 20px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: var(--amber-light);
+      border: 1px solid #f1d9a7;
+      font-size: 12.5px;
+      color: #6b4b12;
+      line-height: 1.55;
+    }
+    .disclaimer strong { color: #4a3309; }
+
+    footer {
+      max-width: 1120px;
+      margin: 0 auto 36px;
+      padding: 0 18px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="badge-row">
+        <span class="badge">PCNSL Prognostic Model</span>
+        <span class="badge">Closed-Form Sigmoid L2-Cox</span>
+        <span class="badge warn">Research Use Only — Pending External Validation</span>
+      </div>
+      <h1>ACHE Overall Survival Calculator for Newly Diagnosed PCNSL</h1>
+      <p class="subtitle">
+        Individualized 12-, 24-, and 36-month overall survival (OS) probability estimation using four routine pretreatment variables:
+        <strong>A</strong>ge, <strong>C</strong>-reactive protein (CRP), <strong>H</strong>emoglobin (Hb), and <strong>E</strong>COG performance status.
+      </p>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <!-- LEFT PANEL: INPUTS -->
+      <section class="card" aria-label="Patient Baseline Inputs">
+        <h2>
+          <span>Pretreatment Predictors</span>
+          <button type="button" class="preset-btn" id="resetBtn" title="Reset to development cohort medians">Reset Medians</button>
+        </h2>
+        <p class="card-sub">
+          Enter baseline measurements prior to induction therapy. Leaving a numeric field blank imputes the development-cohort median.
+        </p>
+
+        <div class="preset-row" aria-label="Illustrative Profiles">
+          <button type="button" class="preset-btn" data-preset="low">Low-Risk Example</button>
+          <button type="button" class="preset-btn" data-preset="median">Dev Median</button>
+          <button type="button" class="preset-btn" data-preset="high">High-Risk Example</button>
+        </div>
+
+        <!-- Age -->
+        <div class="field">
+          <div class="field-head">
+            <label for="ageInput">Age <span class="imputed-pill" id="ageImp">Imputed: 62.0</span></label>
+            <span class="field-hint">Inflection c = 69.0 yr | Dev median = 62.0</span>
+          </div>
+          <div class="input-row">
+            <input type="number" id="ageInput" min="18" max="100" step="0.5" value="62" placeholder="62.0" />
+            <span class="unit">years</span>
+            <input type="range" id="ageRange" min="25" max="90" step="1" value="62" aria-label="Age slider" />
+          </div>
+        </div>
+
+        <!-- ECOG PS -->
+        <div class="field">
+          <div class="field-head">
+            <label>ECOG Performance Status</label>
+            <span class="field-hint">Inflection c = 1.0 | Dev median = 2</span>
+          </div>
+          <div class="ecog-group" role="group" aria-label="ECOG PS Score">
+            <button type="button" class="ecog-btn" data-ecog="0">0</button>
+            <button type="button" class="ecog-btn" data-ecog="1">1</button>
+            <button type="button" class="ecog-btn active" data-ecog="2">2</button>
+            <button type="button" class="ecog-btn" data-ecog="3">3</button>
+            <button type="button" class="ecog-btn" data-ecog="4">4</button>
+          </div>
+          <div class="ecog-desc" id="ecogDesc">2 — Ambulatory and capable of all self-care, unable to carry out work activities (&gt;50% waking hours)</div>
+        </div>
+
+        <!-- Hemoglobin -->
+        <div class="field">
+          <div class="field-head">
+            <label for="hbInput">Hemoglobin (Hb) <span class="imputed-pill" id="hbImp">Imputed: 130.0</span></label>
+            <span class="field-hint">Inflection c = 130.0 g/L | Dev median = 130.0</span>
+          </div>
+          <div class="input-row">
+            <input type="number" id="hbInput" min="30" max="220" step="1" value="130" placeholder="130.0" />
+            <span class="unit">g/L</span>
+            <input type="range" id="hbRange" min="70" max="180" step="1" value="130" aria-label="Hemoglobin slider" />
+          </div>
+        </div>
+
+        <!-- CRP -->
+        <div class="field">
+          <div class="field-head">
+            <label for="crpInput">C-Reactive Protein (CRP) <span class="imputed-pill" id="crpImp">Imputed: 2.26</span></label>
+            <span class="field-hint">Inflection c = 2.26 mg/L | Dev median = 2.26</span>
+          </div>
+          <div class="input-row">
+            <input type="number" id="crpInput" min="0" max="300" step="0.1" value="2.26" placeholder="2.26" />
+            <span class="unit">mg/L</span>
+            <input type="range" id="crpRange" min="0" max="50" step="0.2" value="2.26" aria-label="CRP slider" />
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT PANEL: OUTPUTS -->
+      <section class="card" aria-label="Predicted Survival Outputs">
+        <h2><span>Individualized Overall Survival Estimates</span></h2>
+
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-label">12-Month OS</div>
+            <div class="kpi-value" id="os12">—</div>
+            <div class="kpi-bar-bg"><div class="kpi-bar" id="bar12" style="width:0%"></div></div>
+            <div class="kpi-base">Breslow S₀(12m): 81.6%</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">24-Month OS</div>
+            <div class="kpi-value" id="os24">—</div>
+            <div class="kpi-bar-bg"><div class="kpi-bar" id="bar24" style="width:0%"></div></div>
+            <div class="kpi-base">Breslow S₀(24m): 71.0%</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">36-Month OS</div>
+            <div class="kpi-value" id="os36">—</div>
+            <div class="kpi-bar-bg"><div class="kpi-bar" id="bar36" style="width:0%"></div></div>
+            <div class="kpi-base">Breslow S₀(36m): 59.7%</div>
+          </div>
+        </div>
+
+        <div class="meta-strip">
+          <div class="meta-item">
+            <div class="mlabel">Uncentered Risk Score (R)</div>
+            <div class="mval" id="scoreR">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="mlabel">Centered Linear Predictor (ηc)</div>
+            <div class="mval" id="etaC">—</div>
+          </div>
+          <div class="meta-item">
+            <div class="mlabel">Relative Hazard exp(ηc)</div>
+            <div class="mval" id="relHaz">—</div>
+          </div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-title">
+            <span>Predicted Survival Trajectory (0–36 Months)</span>
+            <div class="legend">
+              <span><span class="legend-dot" style="background:var(--teal)"></span>Patient ACHE Prediction</span>
+              <span><span class="legend-dot" style="background:#94a3b8;border-top:2px dashed #64748b;height:0"></span>Development Baseline S₀(t)</span>
+            </div>
+          </div>
+          <svg id="survSvg" viewBox="0 0 600 205" width="100%" height="auto" role="img" aria-label="Survival probability curve from 0 to 36 months"></svg>
+        </div>
+
+        <h2 style="font-size:14px;margin-bottom:8px;">Predictor Sigmoid Breakdown</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Predictor</th>
+              <th>Input</th>
+              <th>Sigmoid g(x)</th>
+              <th>Centered g(x) − μ</th>
+              <th>β · [g(x) − μ]</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </section>
+    </div>
+
+    <details>
+      <summary>Locked Closed-Form Equations &amp; Development Parameters (Equations 3–6, Table 3)</summary>
+      <div class="formula-box">
+Sigmoid transform:  g_j(x_j; c_j, s_j) = 1 / [1 + exp(-(x_j - c_j) / s_j)]
+
+  g_Age(Age)   = 1 / [1 + exp(-(Age  -  69.00) /  2.5000)],   β = +0.569838,  μ = 0.271404
+  g_ECOG(ECOG) = 1 / [1 + exp(-(ECOG -   1.00) /  0.4000)],   β = +1.354331,  μ = 0.684166
+  g_Hb(Hb)     = 1 / [1 + exp(-(Hb   - 130.00) / 14.1600)],   β = -1.163557,  μ = 0.523111
+  g_CRP(CRP)   = 1 / [1 + exp(-(CRP  -   2.26) /  1.4026)],   β = +0.684806,  μ = 0.565943
+
+Centering constant: Σ β_j μ_j = 0.860136   |   L2 ridge penalty = 0.10
+Linear predictor:   η_c = R - 0.860136 = Σ β_j · [g_j(x_j) - μ_j]
+
+Individualized OS:  S(12m | x) = 0.816156 ^ exp(η_c)
+                    S(24m | x) = 0.710476 ^ exp(η_c)
+                    S(36m | x) = 0.597072 ^ exp(η_c)
+      </div>
+    </details>
+
+    <div class="disclaimer">
+      <strong>Research &amp; Academic Disclaimer:</strong> This calculator implements the exact closed-form ACHE model
+      (<code>pcnsl_core4_sigmoid_ecog_completed_100_36</code>) developed and internally evaluated in a single-center
+      retrospective cohort of 136 newly diagnosed PCNSL patients at Zhejiang Cancer Hospital (Hangzhou, China).
+      It is provided solely for research reproduction and academic evaluation and is <strong>not</strong> intended for
+      standalone clinical decision-making prior to prospective multicenter external validation and recalibration.
+      All calculations execute locally in your browser; no patient information is transmitted or stored.
+    </div>
+  </main>
+
+  <footer>
+    <span>Zhejiang Cancer Hospital, Hangzhou Institute of Medicine (HIM), Chinese Academy of Sciences</span>
+    <span>ACHE Model v2026-08-09-exp42-ecog-completed-core4 (Closed-Form Browser Implementation)</span>
+  </footer>
+
+  <script>
+    // Exact double-precision parameters from calculation_formula.json
+    const MODEL = {
+      variables: {
+        age:  { label: "Age",        unit: "yr",   median: 62.0,  c: 69.0,  s: 2.5,                mu: 0.2714044315678833, beta:  0.5698376110005678 },
+        ecog: { label: "ECOG PS",    unit: "pt",   median: 2.0,   c: 1.0,   s: 0.4,                mu: 0.6841664070231849, beta:  1.3543308851251885 },
+        hb:   { label: "Hemoglobin", unit: "g/L",  median: 130.0, c: 130.0, s: 14.159999999999997, mu: 0.5231107938749504, beta: -1.1635572888486931 },
+        crp:  { label: "CRP",        unit: "mg/L", median: 2.26,  c: 2.26,  s: 1.4026000000000005, mu: 0.5659430694936,    beta:  0.6848061342189385 }
+      },
+      s0: { 12: 0.8161563813049036, 24: 0.7104762106921302, 36: 0.597071805749589 }
+    };
+
+    const ECOG_TEXT = {
+      0: "0 — Fully active, able to carry on all pre-disease performance without restriction",
+      1: "1 — Restricted in physically strenuous activity, ambulatory and able to carry out light work",
+      2: "2 — Ambulatory and capable of all self-care, unable to carry out work activities (>50% waking hours)",
+      3: "3 — Capable of only limited self-care, confined to bed or chair >50% of waking hours",
+      4: "4 — Completely disabled, cannot carry on any self-care, totally confined to bed or chair"
+    };
+
+    const PRESETS = {
+      low:    { age: 52, ecog: 0, hb: 145, crp: 0.8 },
+      median: { age: 62, ecog: 2, hb: 130, crp: 2.26 },
+      high:   { age: 74, ecog: 3, hb: 102, crp: 18.0 }
+    };
+
+    let currentEcog = 2;
+
+    const ageInput = document.getElementById("ageInput");
+    const ageRange = document.getElementById("ageRange");
+    const hbInput  = document.getElementById("hbInput");
+    const hbRange  = document.getElementById("hbRange");
+    const crpInput = document.getElementById("crpInput");
+    const crpRange = document.getElementById("crpRange");
+
+    function sigmoid(x, c, s) {
+      return 1.0 / (1.0 + Math.exp(-(x - c) / s));
+    }
+
+    function readNum(el, median, badgeId) {
+      const raw = el.value.trim();
+      const badge = document.getElementById(badgeId);
+      if (raw === "" || isNaN(Number(raw))) {
+        badge.classList.add("show");
+        return { val: median, imputed: true };
+      }
+      badge.classList.remove("show");
+      return { val: Number(raw), imputed: false };
+    }
+
+    function drawChart(p12, p24, p36) {
+      const svg = document.getElementById("survSvg");
+      const W = 600, H = 205;
+      const ml = 46, mr = 26, mt = 16, mb = 32;
+      const pw = W - ml - mr, ph = H - mt - mb;
+      const xPos = m => ml + (m / 36) * pw;
+      const yPos = p => mt + (1 - p) * ph;
+
+      const basePts = [[0, 1], [12, MODEL.s0[12]], [24, MODEL.s0[24]], [36, MODEL.s0[36]]];
+      const patPts  = [[0, 1], [12, p12], [24, p24], [36, p36]];
+      const toPath = pts => pts.map((pt, i) => `${i === 0 ? "M" : "L"}${xPos(pt[0]).toFixed(1)},${yPos(pt[1]).toFixed(1)}`).join(" ");
+
+      let html = "";
+      // Horizontal grid lines
+      [0, 0.25, 0.5, 0.75, 1.0].forEach(v => {
+        const y = yPos(v).toFixed(1);
+        html += `<line x1="${ml}" y1="${y}" x2="${W - mr}" y2="${y}" stroke="#e8eef5" stroke-width="1"/>`;
+        html += `<text x="${ml - 8}" y="${Number(y) + 4}" text-anchor="end" font-size="11" fill="#64748b">${Math.round(v * 100)}%</text>`;
+      });
+      // Vertical ticks
+      [0, 12, 24, 36].forEach(m => {
+        const x = xPos(m).toFixed(1);
+        html += `<line x1="${x}" y1="${mt}" x2="${x}" y2="${H - mb}" stroke="#f1f5f9" stroke-width="1"/>`;
+        html += `<text x="${x}" y="${H - 12}" text-anchor="middle" font-size="11" fill="#475569">${m} mo</text>`;
+      });
+      // Axes
+      html += `<line x1="${ml}" y1="${mt}" x2="${ml}" y2="${H - mb}" stroke="#cbd5e1" stroke-width="1.2"/>`;
+      html += `<line x1="${ml}" y1="${H - mb}" x2="${W - mr}" y2="${H - mb}" stroke="#cbd5e1" stroke-width="1.2"/>`;
+
+      // Baseline dashed curve
+      html += `<path d="${toPath(basePts)}" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,4"/>`;
+      // Area under patient curve
+      const areaD = `${toPath(patPts)} L${xPos(36).toFixed(1)},${yPos(0).toFixed(1)} L${xPos(0).toFixed(1)},${yPos(0).toFixed(1)} Z`;
+      html += `<path d="${areaD}" fill="rgba(13,115,119,0.08)"/>`;
+      // Patient curve
+      html += `<path d="${toPath(patPts)}" fill="none" stroke="#0d7377" stroke-width="2.8" stroke-linejoin="round"/>`;
+
+      // Patient data markers & labels
+      patPts.forEach(([m, p]) => {
+        const cx = xPos(m).toFixed(1);
+        const cy = yPos(p).toFixed(1);
+        html += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="#ffffff" stroke="#0d7377" stroke-width="2.5"/>`;
+        if (m > 0) {
+          const ly = p > 0.88 ? Number(cy) + 18 : Number(cy) - 10;
+          const anchor = m === 36 ? "end" : "middle";
+          html += `<text x="${cx}" y="${ly}" text-anchor="${anchor}" font-size="11.5" font-weight="700" fill="#0f2942">${(p * 100).toFixed(1)}%</text>`;
+        }
+      });
+
+      svg.innerHTML = html;
+    }
+
+    function update() {
+      const ageR = readNum(ageInput, MODEL.variables.age.median, "ageImp");
+      const hbR  = readNum(hbInput,  MODEL.variables.hb.median,  "hbImp");
+      const crpR = readNum(crpInput, MODEL.variables.crp.median, "crpImp");
+
+      const vals = { age: ageR.val, ecog: currentEcog, hb: hbR.val, crp: crpR.val };
+      const imps = { age: ageR.imputed, ecog: false, hb: hbR.imputed, crp: crpR.imputed };
+
+      let R = 0;
+      let etaC = 0;
+      let rowsHtml = "";
+
+      ["age", "ecog", "hb", "crp"].forEach(k => {
+        const cfg = MODEL.variables[k];
+        const x = vals[k];
+        const g = sigmoid(x, cfg.c, cfg.s);
+        const centered = g - cfg.mu;
+        const contrib = cfg.beta * centered;
+        R += cfg.beta * g;
+        etaC += contrib;
+
+        const cls = contrib > 0.0005 ? "pos" : (contrib < -0.0005 ? "neg" : "");
+        const sign = contrib >= 0 ? "+" : "";
+        const valFmt = k === "ecog" ? `${x} ${cfg.unit}` : `${x.toFixed(k === "crp" ? 2 : 1)} ${cfg.unit}${imps[k] ? " *" : ""}`;
+        rowsHtml += `<tr>
+          <td><strong>${cfg.label}</strong></td>
+          <td>${valFmt}</td>
+          <td>${g.toFixed(4)}</td>
+          <td>${centered >= 0 ? "+" : ""}${centered.toFixed(4)}</td>
+          <td class="${cls}">${sign}${contrib.toFixed(4)}</td>
+        </tr>`;
+      });
+
+      const hr = Math.exp(etaC);
+      const s12 = Math.pow(MODEL.s0[12], hr);
+      const s24 = Math.pow(MODEL.s0[24], hr);
+      const s36 = Math.pow(MODEL.s0[36], hr);
+
+      document.getElementById("os12").textContent = `${(s12 * 100).toFixed(1)}%`;
+      document.getElementById("os24").textContent = `${(s24 * 100).toFixed(1)}%`;
+      document.getElementById("os36").textContent = `${(s36 * 100).toFixed(1)}%`;
+      document.getElementById("bar12").style.width = `${(s12 * 100).toFixed(1)}%`;
+      document.getElementById("bar24").style.width = `${(s24 * 100).toFixed(1)}%`;
+      document.getElementById("bar36").style.width = `${(s36 * 100).toFixed(1)}%`;
+
+      document.getElementById("scoreR").textContent = R.toFixed(4);
+      document.getElementById("etaC").textContent = `${etaC >= 0 ? "+" : ""}${etaC.toFixed(4)}`;
+      document.getElementById("relHaz").textContent = `${hr.toFixed(2)}×`;
+      document.getElementById("breakdownBody").innerHTML = rowsHtml;
+
+      drawChart(s12, s24, s36);
+    }
+
+    function syncPair(numEl, rangeEl) {
+      numEl.addEventListener("input", () => {
+        const v = Number(numEl.value);
+        if (!isNaN(v) && numEl.value.trim() !== "") {
+          rangeEl.value = Math.min(Number(rangeEl.max), Math.max(Number(rangeEl.min), v));
+        }
+        update();
+      });
+      rangeEl.addEventListener("input", () => {
+        numEl.value = rangeEl.value;
+        update();
+      });
+    }
+
+    syncPair(ageInput, ageRange);
+    syncPair(hbInput, hbRange);
+    syncPair(crpInput, crpRange);
+
+    function setEcog(val) {
+      currentEcog = val;
+      document.querySelectorAll(".ecog-btn").forEach(btn => {
+        btn.classList.toggle("active", Number(btn.dataset.ecog) === val);
+      });
+      document.getElementById("ecogDesc").textContent = ECOG_TEXT[val];
+      update();
+    }
+
+    document.querySelectorAll(".ecog-btn").forEach(btn => {
+      btn.addEventListener("click", () => setEcog(Number(btn.dataset.ecog)));
+    });
+
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      ageInput.value = p.age;
+      ageRange.value = Math.min(90, Math.max(25, p.age));
+      hbInput.value  = p.hb;
+      hbRange.value  = Math.min(180, Math.max(70, p.hb));
+      crpInput.value = p.crp;
+      crpRange.value = Math.min(50, Math.max(0, p.crp));
+      setEcog(p.ecog);
+    }
+
+    document.querySelectorAll("[data-preset]").forEach(btn => {
+      btn.addEventListener("click", () => applyPreset(btn.dataset.preset));
+    });
+    document.getElementById("resetBtn").addEventListener("click", () => applyPreset("median"));
+
+    update();
+  </script>
+</body>
+</html>
